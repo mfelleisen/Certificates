@@ -126,7 +126,10 @@ See [sort on "array lists"](sort-certificate-param-class.rkt) for the full code.
   the contract can simply _not_ compute the certificate (and could
   even issue a warning that the developer disabled it).
 
-See [ho sort](sort-certificate-param-ho.rkt) for the full code.
+See [ho sort](sort-certificate-param-ho.rkt) for the full code.  See
+[optional ho sort](sort-certificate-optional.rkt) for the alternative
+of making `swap` an optional argument and warning users of the failure
+to generate a certificate.
 
 Higher-order languages offer several alternative mechanisms to cope
 with this problem.
