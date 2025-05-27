@@ -54,6 +54,88 @@ algorithm can cleanly separate these pieces.
 See [sort with parameter contract for generatin a certificate](sort-certificate-param.rkt).
 
 
+### How to Define the Interface Specification
+
+Does all of this mean that algorithm designers have to expose pieces
+of the code, such as `swap`, so that the specification can attach the
+proper contracts?
+
+No.
+
+When objects, functions, and contracts are first-class values,
+specifications can express these constraints with the _retroactive_
+attachment of contracts.
+
+**Example 1** If the core language is a class-based, object-oriented
+  language, like Java, the specifier can impose an opaque contract on
+  the `array-list%` collection class from the standard library. The
+  key pieces of code look like this:
+
+```
+#; {[Parameter [Instance-of Certificate%]]}
+;; .. only during the dynamic extent of `sort`
+;; `#false` while no `sort` is running
+(define record-swap-events (make-parameter #false))
+
+(define vector%/c
+  (class/c
+   (copy (->m (instanceof/c (recursive-contract vector%/c))))
+   (>>   (->m natural? natural? boolean?))
+   (swap (->dm ([i natural?] [j natural?])
+               #:pre (send (record-swap-events) swap i j)
+               (r void?)))))
+
+(define contract-for-self-certifying-sort
+  (->i ([a [instanceof/c vector%/c]])
+       #:param (a) record-swap-events (new certificate% [a a])
+       (b [instanceof/c vector%/c])
+       #:post/name (a b) "satisfies p1 p2 and p3" (send (record-swap-events) validator b)))
+```
+
+See [sort on "array lists"](sort-certificate-param-class.rkt) for the full code. 
+
+
+**Example 2** In a functional language, such as Racket, we can
+  explicate that `swap` is an explicit building block by turning it
+  into a parameter of `sort` and by _retroactively_ imposing the
+  appropriate contract on this extra parameter:
+
+```
+#; {[Parameter [Instance-of Certificate%]]}
+;; .. only during the dynamic extent of `sort`
+;; `#false` while no `sort` is running
+(define record-swap-events (make-parameter #false))
+
+(define contract-for-swap
+  (->i ([v vector?] [i natural?] [j natural?])
+       #:pre/name (i j) "record the swap event" (send (record-swap-events) swap i j)
+       (r void?)))
+
+(define contract-for-self-certifying-sort
+  (->i ([a [vectorof real?]]
+        [swap contract-for-swap])
+       #:param (a) record-swap-events (new certificate% [a a])
+       (b [vectorof real?])
+       #:post/name (a b) "satisfies p1 p2 and p3" (send (record-swap-events) validator b)))
+```
+
+**Example 3** In this setting, we can go even further by making `swap`
+  an _optional_ parameter and _optionally_ imposing an appropriate
+  contract. That is, if the implementer of `sort` directly refers to
+  some existing `swap` or open-codes `swap` inside the `for` loop,
+  the contract can simply _not_ compute the certificate (and could
+  even issue a warning that the developer disabled it).
+
+See [ho sort](sort-certificate-param-ho.rkt) for the full code.
+
+Higher-order languages offer several alternative mechanisms to cope
+with this problem.
+
+What this approach exposes is that we tend to think of specifications
+in a naive manner, not realizing that extensional-looking specs often
+implicitly assume intensional aspects, which should be stated explicitly.
+
+
 ### Complexity Certificates via Parameter Contracts
 
 The same idea can be used to check the algorithmic complexity of code.
