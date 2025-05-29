@@ -2,7 +2,6 @@
 
 This repo is inspired by
 
-
 - [Program Correctness through Self-Certification](https://cacm.acm.org/research/program-correctness-through-self-certification/)
 
 - [Trace Contracts](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/trace-contracts/4AF1C7361751839FF7E2DEBC65A050EE)
@@ -18,6 +17,61 @@ a _validator_ that is also easy to implement and that can check this
 certificate with low computational effort. Their article presents the
 idea with a specification and implementation of an imperative bubble
 sort algorithm for vectors.
+
+
+
+### A FUNCTIONAL for Generating a Self-Certifyiing Sort from ANY Sort
+
+A proper library supplies a generic sort that abstracts over the nature of the elements: 
+
+```
+(define sort/c ;; generic in which elements are being sorted 
+  #; (∀ (α) ...)
+  ;; create a sorted version of the given list by comparing the selectable pieces of each element
+  (->i ([to-be-sorted (and/c (listof #; α any/c) cons?)] ;; not empty
+        [select       (-> #; α any/c #; β any/c)]
+        [compare      (-> #; β any/c #; β any/c boolean?)])
+       (r (listof #; α any/c))))
+```
+
+Here then is the contract for a corresponding self-certifying `sort`: 
+
+```
+(define self-certifying-sort/c
+  #; (∀ (α) ...)
+  ;; create a sorted version of the given list by comparing the selectable pieces of each element
+  (->i ([to-be-sorted (and/c (listof #; α any/c) cons?)] ;; not empty
+        [select       (-> #; α any/c #; β any/c)]
+        [compare      (-> #; β any/c #; β any/c boolean?)])
+       (result+certificate (list/c (listof #; α any/c) (listof #; α natural?)))
+       #:post/name (to-be-sorted select compare result+certificate) "satisfies p1 p2 and p3"
+       (validator select compare to-be-sorted result+certificate)))
+```
+
+In this context, it is possible to "lift" any `sort` algorithm that matches the first signature to one that is self-certifying according to the second contract:
+
+```
+(define/contract (certify-sort sort) (-> sort/c self-certifying-sort/c)
+  (λ (lox0 select-y-from-x compare-y-s) ;; curried function 
+    (define lifted-lox0            (lift-list lox0))
+    (define lifted-select-y-from-x (compose select-y-from-x lower-element))
+    (define lifted-result          (sort lifted-lox0 lifted-select-y-from-x compare-y-s))
+    ;;     proper result:            certificate: 
+    (list (lower-list lifted-result) (extract-certificate lifted-result))))
+```
+
+Now we could automatically transform a plain sort into a self-certifying variant that is functionally equivalent:
+
+```
+;; the following two sort functions are functionally equivalent to sort but self-certify
+(define certifying-insertion-sort (compose first (certify-sort insertion-sort)))
+(define certifying-merge-sort     (compose first (certify-sort merge-sort)))
+```
+
+See [generating self-certifying sorts](generic-self-certifying-sorts.rkt).
+
+### The Rest is the Original Approach 
+
 
 ### Plain Contracts: Implementing Self-Certification with 
 
