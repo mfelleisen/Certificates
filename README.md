@@ -18,6 +18,14 @@ certificate with low computational effort. Their article presents the
 idea with a specification and implementation of an imperative bubble
 sort algorithm for vectors.
 
+### ARGMAX as an Example
+
+Racket's `argmax` function is a good example of a higher-order function for which
+a functional can generate a self-certifying variant. 
+
+- See [a variety of `argmax` implementations](argmax.rkt) for the full code.
+- A self-certifying variant doesn't always run faster than the variant with an ordinary full-correctnes contract.
+  See [performance results](argmax.md).
 
 
 ### A FUNCTIONAL for Generating a Self-Certifyiing Sort from ANY Sort
