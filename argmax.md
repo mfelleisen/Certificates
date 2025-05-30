@@ -10,13 +10,12 @@ Each argmax is measured in four contexts:
 
 where `most` uses a simple selector on the pair and `expensive` computes a 4-th degree polynomial (from the same number)
 
-
-| argmax                   | without contract  | plain            | max-checking       | full correctness     | full with certificate | 
-| ------------------------ | ----------------- | ---------------- | ------------------ | -------------------- | --------------------- |
-| most @ many @ short      |  6  /  7  / 0     |  66  /  68  / 0  |  128  /  133  / 0  |  139  /  144  / 0    |  94  /  98  / 0       |
-| most @ few @ long        |  54  /  58  / 0   |  212  /  219  / 1|  413  /  428  / 2  |  502  /  519  / 47   |  801  /  819  / 387   |
-| expensive @ many @ short |  32  /  33  / 0   |  90  /  93  / 0  |  181  /  187  / 1  |  191  /  199  / 1    |  124  /  129  / 0     |
-| expensive @ few @ long   |  309  /  324  / 0 |  477  /  496  / 1|  953  /  989  / 3  |  1095  /  1133  / 102|  1142  /  1172  / 451 |
-
+|  argmax  | most @ short, 100000x | most @ long, 10x | expensive @ short, 100000x | expensive @ long, 10x |
+|----------|-----------------------|------------------|----------------------------|-----------------------|
+| (with certificate) | 95 / 99 / 0 | 811 / 830 / 393 | 124 / 129 / 0 | 1153 / 1185 / 456 |
+| (full correctness) | 141 / 146 / 0 | 508 / 526 / 47 | 191 / 199 / 0 | 1098 / 1139 / 102 |
+| (max only) | 129 / 134 / 0 | 417 / 433 / 2 | 181 / 188 / 1 | 950 / 989 / 3 |
+| (plain ->i) | 66 / 69 / 0 | 215 / 223 / 0 | 88 / 92 / 0 | 480 / 500 / 1 |
+| (no contract) | 6 / 6 / 0 | 54 / 58 / 0 | 31 / 33 / 0 | 302 / 317 / 0 |
 
 At least at first glance, certificates do not uniformly reduce costs.

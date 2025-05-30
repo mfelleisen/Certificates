@@ -1,6 +1,7 @@
 #lang racket
 
 (module+ test
+  (require "argmax-table.rkt")
   (require rackunit)
 
   #; {[Listof [List Symbol N]] -> [List Symbol N]}
@@ -19,14 +20,11 @@
   #; {N [Listof [List Symbol N]] -> Void}
   ;; for performance testing
   (define-syntax-rule (run-often n fruit argmax in)
-    (begin
-      (eprintf "testing ~a ~a times on ~a list \n"
-               'fruit
-               (if (> n 100) "many" "a few")
-               (if (> (length in) 100) "long" "short"))
-      (collect-garbage) (collect-garbage) (collect-garbage)
-      (define x #false)
-      (time (for ([i (in-range n)]) (set! x (fruit argmax in)))))))
+    (let ([x #false])
+      (with-output-to-string
+        (lambda ()
+          (collect-garbage) (collect-garbage) (collect-garbage)
+          (time (for ([i (in-range n)]) (set! x (fruit argmax in)))))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; a plain contract 
@@ -64,6 +62,10 @@
   (provide
    (contract-out
     [argmax argmax/c]))
+  
+  (define argmax/c 
+    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)
+         #:post/name (f lox r) "(f r) is largest and leftmost one" (complete-specification f lox r)))
 
   (define (complete-specification f lox r)
     (define f@r (f r))
@@ -72,17 +74,13 @@
      (f-larger-at-r-than-any-other-x f@lox f@r)
      (upto r lox f@r f@lox)))
 
-  (define (upto r lox f@r f@lox)
-    (define prefix (takef lox (λ (x) (not (equal? r x)))))
-    (for/and ([f@x f@lox] [_ prefix])
-      (< f@x f@r)))
-
   (define (f-larger-at-r-than-any-other-x f@lox f@r)
     (andmap (λ (f@x) (>= f@r f@x)) f@lox))
 
-  (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)
-         #:post/name (f lox r) "(f r) is largest and leftmost one" (complete-specification f lox r))))
+  (define (upto r lox f@r f@lox)
+    (define prefix (takef lox (λ (x) (not (equal? r x)))))
+    (for/and ([f@x f@lox] [_ prefix])
+      (< f@x f@r))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; a self-certifying contract to ensure that
@@ -141,18 +139,24 @@
   (check-equal? (most-fruit argmax in1) '(oranges 3))
   (check-equal? (most-fruit argmax in2) '(oranges 3))
 
+  (define *measurements
+    '())
+
   (define-syntax-rule (measure argmax x ...)
-    (begin
-      (eprintf "\n~a\n" '(x ...))
-      (run-often 100000 most-fruit argmax in1)
-      (run-often 10 most-fruit argmax in2)
-      (run-often 100000 expensive-fruit argmax in1)
-      (run-often 10 expensive-fruit argmax in2)))
+    (let ()
+      (define tmp
+        (list
+         (format "~a" '(x ...))
+         (run-often 100000 most-fruit argmax in1)
+         (run-often 10 most-fruit argmax in2)
+         (run-often 100000 expensive-fruit argmax in1)
+         (run-often 10 expensive-fruit argmax in2)))
+      (set! *measurements (cons tmp *measurements))))
 
   (measure argmax "no contract")
   (measure p:argmax "plain ->i")
-  (measure m:argmax "max-checking ->i")
-  (measure f:argmax "full correctness ->i")
-  (measure c:argmax "full correctness ->i plus certificate"))
+  (measure m:argmax "max only")
+  (measure f:argmax "full correctness")
+  (measure c:argmax "with certificate")
 
-  
+  (print-table *measurements))
