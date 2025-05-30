@@ -85,6 +85,10 @@
          #:post/name (f lox r) "(f r) is largest and leftmost one" (complete-specification f lox r))))
 
 ;; ---------------------------------------------------------------------------------------------------
+;; a self-certifying contract to ensure that
+;; -- the result is a maximum of `f` of all elements of `lox` and
+;; -- it is the leftmost such element
+
 (module argmax-max-leftmost-with-certificate racket
   (provide
    (contract-out
@@ -92,18 +96,9 @@
 
   (require (rename-in racket (argmax old:argmax)))
 
-  (define (complete-specification cache f r)
-    (define f@r (f r))
-    (define f@lox (map second cache))
-    (and
-     (f-larger-at-r-than-any-other-x f@lox f@r)
-     (upto r (map first cache) f@r f@lox)))
+  (define argmax/c 
+    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)))
 
-  (define (upto r lox f@r f@lox)
-    (define prefix (takef lox (λ (x) (not (equal? r x)))))
-    (for/and ([f@x f@lox] [_ prefix])
-      (< f@x f@r)))
-  
   (define (argmax f lox)
     (define *cache '())
     (define (g x)
@@ -114,13 +109,22 @@
     (unless (complete-specification (reverse *cache) f r)
       (error 'argmax "failed specs"))
     r)
-    
+
+  ;; CAUTION: this assumes that `old:argmax` traverses `lox` from left to right
+  (define (complete-specification cache f r)
+    (define f@r (f r))
+    (define f@lox (map second cache))
+    (and
+     (f-larger-at-r-than-any-other-x f@lox f@r)
+     (upto r (map first cache) f@r f@lox)))
+
   (define (f-larger-at-r-than-any-other-x f@lox f@r)
     (andmap (λ (f@x) (>= f@r f@x)) f@lox))
-
-  (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c))))
-         
+  
+  (define (upto r lox f@r f@lox)
+    (define prefix (takef lox (λ (x) (not (equal? r x)))))
+    (for/and ([f@x f@lox] [_ prefix])
+      (< f@x f@r))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require (prefix-in p: 'argmax-plain))
