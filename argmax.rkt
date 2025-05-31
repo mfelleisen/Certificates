@@ -35,7 +35,7 @@
     [argmax argmax/c]))
 
   (define argmax/c ;; the plainest contract 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c))))
+    (-> (-> any/c real?) list? any/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; a contract to ensure that the result is a maximum of `f` of all elements of `lox`
@@ -50,7 +50,7 @@
     (andmap (λ (x) (>= f@r (f x))) lox))
 
   (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)
+    (->i ([f (-> any/c real?)] [lox list?]) (r any/c)
          #:post/name (f lox r) "(f r) is largest" (f-larger-at-r-than-any-other-x f lox r))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -64,11 +64,11 @@
     [argmax argmax/c]))
   
   (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)
+    (->i ([f (-> any/c real?)] [lox list?]) (r any/c)
          #:post/name (f lox r) "(f r) is largest and leftmost one" (complete-specification f lox r)))
 
   (define (complete-specification f lox r)
-    (define f@r (f r))
+    (define f@r (f r))<
     (define f@lox (map f lox))
     (and
      (f-larger-at-r-than-any-other-x f@lox f@r)
@@ -95,7 +95,7 @@
   (require (rename-in racket (argmax old:argmax)))
 
   (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)))
+    (-> (-> any/c real?) list? any/c))
 
   (define (argmax f lox)
     (define *cache '())
@@ -134,7 +134,7 @@
   (require (rename-in racket (argmax old:argmax)))
 
   (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)))
+    (-> (-> any/c real?) list? any/c))
 
   (define (argmax f lox)
     (define *cache '())
@@ -175,7 +175,7 @@
     [rename argmax argmax-with argmax/c]))
 
   (define argmax/c ;; the plainest contract 
-    (->i ([f (-> any/c real?)] [lox (listof any/c)]) (r any/c)))
+    (-> (-> any/c real?) list? any/c))
   
   (define (argmax f lox0)
     (define-values (r cache) (argmax0 f lox0))
@@ -262,12 +262,12 @@
   
   (measure argmax "original")
   (measure 0:argmax "internal plain")
-  (measure argmax-with "internal ->i")
+  (measure argmax-with "internal ->")
   (measure d:argmax "lifted certificate")
-  (measure c:argmax "->i and lifted")
+  (measure c:argmax "-> and lifted")
   (measure f:argmax "full ->i")
   (measure m:argmax "max ->i")
-  (measure p:argmax "plain ->i")
+  (measure p:argmax "plain ->")
   
   
   (print-table (reverse *measurements)))

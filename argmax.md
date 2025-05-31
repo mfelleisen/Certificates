@@ -1,4 +1,3 @@
-
 ## Measuring various contracts for argmax
 
 Each argmax is measured in four contexts:
@@ -24,7 +23,21 @@ where `most` uses a simple selector on the pair and `expensive` computes a 4-th 
 | (max ->i)            | only checking that it returns an elemant that produces a maximal result for `f`   |
 | (plain ->i)          | Racket's argmax equipped with ->i  	       		  	  	     	   |
 
-### Performance 
+### Performance: `->`
+
+|  argmax  | most @ short, 100000x | most @ long, 10x | expensive @ short, 100000x | expensive @ long, 10x |
+|----------|-----------------------|------------------|----------------------------|-----------------------|
+| (original)           | ___6 : ___6 : ___0 | __54 : __58 : ___0 | __31 : __33 : ___0 | _305 : _321 : ___0 |
+| (internal plain)     | __20 : __21 : ___0 | _380 : _390 : _210 | __54 : __56 : ___0 | _752 : _774 : _314 |
+| (internal ->)        | __79 : __82 : ___0 | _586 : _600 : _257 | _110 : _114 : ___0 | _963 : _989 : _348 |
+| (lifted certificate) | __23 : __24 : ___0 | _403 : _414 : _211 | __55 : __58 : ___0 | _852 : _875 : _393 |
+| (-> and lifted)      | __83 : __86 : ___0 | _624 : _638 : _273 | _112 : _117 : ___0 | 1096 : 1123 : _459 |
+| 		     | 	     	     | 	     	      |	      	      |	       	      	  |
+| (full ->i)           | _141 : _147 : ___0 | _509 : _527 : __48 | _195 : _203 : ___1 | 1104 : 1145 : _102 |
+| (max ->i)            | _130 : _135 : ___0 | _416 : _432 : ___2 | _180 : _187 : ___1 | _955 : _994 : ___3 |
+| (plain ->)           | __60 : __63 : ___0 | _215 : _223 : ___0 | __84 : __87 : ___0 | _484 : _504 : ___1 |
+
+### Performance: `->i` where useful 
 
 |  argmax  | most @ short, 100000x | most @ long, 10x | expensive @ short, 100000x | expensive @ long, 10x |
 |----------|-----------------------|------------------|----------------------------|-----------------------|
@@ -48,6 +61,7 @@ where `most` uses a simple selector on the pair and `expensive` computes a 4-th 
 - Plain self-certification essentially increases the cost by a factor of 3. 
 
 - The `->i` contracts impose a much more serious cost.
+- Well, `->` also imposes such a cost ...
 
 - Indeed, `->i` contracts on `argmax` with internal or external
   certificate makes it look like certificates don't help much when the
