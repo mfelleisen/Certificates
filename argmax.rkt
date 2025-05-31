@@ -82,6 +82,45 @@
     (for/and ([f@x f@lox] [_ prefix])
       (< f@x f@r))))
 
+(module argmax-param-contract racket
+  (provide
+   (contract-out
+    [argmax argmax/c]))
+
+  (define argmax%
+    (class object%
+      (super-new)
+
+      (field [cache '()])
+
+      (define/public (check f r)
+        (set! cache (reverse cache))
+        (define f@r (f r))
+        (define lox (map car cache))
+        (define f@lox (map cadr cache))
+        (and
+         (f-larger-at-r-than-any-other-x f@lox f@r)
+         (upto r lox f@r f@lox)))
+  
+      (define (f-larger-at-r-than-any-other-x f@lox f@r)
+        (andmap (λ (f@x) (>= f@r f@x)) f@lox))
+  
+      (define (upto r lox f@r f@lox)
+        (for/and ([f@x f@lox] [x lox] #:break (equal? x r))
+          (< f@x f@r)))
+
+      (define/public (record x y)
+        (set! cache (cons (list x y) cache)))))
+
+  (define argmax/p (make-parameter #false))
+  
+  (define argmax/c
+    (->i ([f (->i ([x any/c]) (y real?) #:post (x y) (send (argmax/p) record x y))]
+          [lox list?])
+         #:param () argmax/p (new argmax%)
+         (r any/c)
+         #:post/name (f lox r) "(f r) is largest and leftmost one" (send (argmax/p) check f r))))
+
 ;; ---------------------------------------------------------------------------------------------------
 ;; a self-certifying contract to ensure that
 ;; -- the result is a maximum of `f` of all elements of `lox` and
@@ -230,6 +269,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 (require (prefix-in 0: 'my-max))
 (require (prefix-in p: 'argmax-plain))
+(require (prefix-in q: 'argmax-param-contract))
 (require (prefix-in m: 'argmax-max))
 (require (prefix-in f: 'argmax-max-leftmost))
 (require (prefix-in c: 'argmax-max-leftmost-with-certificate))
@@ -268,6 +308,8 @@
   (measure f:argmax "full ->i")
   (measure m:argmax "max ->i")
   (measure p:argmax "plain ->")
+
+  (measure q:argmax "param ->i")
   
   
   (print-table (reverse *measurements)))
