@@ -2,10 +2,14 @@
 
 (provide print-table)
 
-(define (print-table example)
+(define (print-table example0)
   (define title (->row HEADER))
   (define dashes (->header title))
 
+  (define n (string-length (argmax string-length (map first example0))))
+  (define example
+    (map (λ (x) (cons (~a (first x) #:width n) (rest x))) example0))
+  
   (define body (map ->body (map ->row example)))
 
   (printf "~a\n" title)
@@ -28,10 +32,15 @@
 (define (->header s)
   (regexp-replace* #px"- -" (regexp-replace* #rx"\\(|[a-z]|\\>|\\)|@|1|0|\\,| " s "-") "---"))
 
-(define (->body s)
-  (regexp-replace* #px"real:|gc:"
-                   (regexp-replace* #px"\n|cpu: " (regexp-replace* #px" time:" s ":") "")
-                   "/"))
+(define (->body s0)
+  (let* ([s s0]
+         [s (regexp-replace* #px" time:" s ":")]
+         [s (regexp-replace* #px"\n|cpu: " s "")]
+         [s (regexp-replace* #px"real:|gc:" s ":")]
+         [s (regexp-replace* #px" (\\d) " s " ___\\1 ")]
+         [s (regexp-replace* #px" (\\d\\d) " s " __\\1 ")]
+         [s (regexp-replace* #px" (\\d\\d\\d) " s " _\\1 ")])
+    s))
 
 (module+ test
   (define example
@@ -60,4 +69,7 @@
        "cpu time: 73 real time: 77 gc time: 0\n"
        "cpu time: 73 real time: 80 gc time: 1\n"
        "cpu time: 626 real time: 658 gc time: 8\n")))
+
+ 
+  
   (print-table example))
