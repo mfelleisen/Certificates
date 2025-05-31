@@ -32,10 +32,7 @@
 (module argmax-plain racket
   (provide
    (contract-out
-    [argmax argmax/c]))
-
-  (define argmax/c ;; the plainest contract 
-    (-> (-> any/c real?) list? any/c)))
+    [argmax (-> (-> any/c real?) list? any/c)])))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; a contract to ensure that the result is a maximum of `f` of all elements of `lox`
@@ -43,15 +40,13 @@
 (module argmax-max racket
   (provide
    (contract-out
-    [argmax argmax/c]))
+    [argmax
+     (->i ([f (-> any/c real?)] [lox list?]) (r any/c)
+          #:post/name (f lox r) "(f r) is largest" (f-larger-at-r-than-any-other-x f lox r))]))
 
   (define (f-larger-at-r-than-any-other-x f lox r)
     (define f@r (f r))
-    (andmap (λ (x) (>= f@r (f x))) lox))
-
-  (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox list?]) (r any/c)
-         #:post/name (f lox r) "(f r) is largest" (f-larger-at-r-than-any-other-x f lox r))))
+    (andmap (λ (x) (>= f@r (f x))) lox)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; a plain contract to ensure that
@@ -61,11 +56,9 @@
 (module argmax-max-leftmost racket
   (provide
    (contract-out
-    [argmax argmax/c]))
-  
-  (define argmax/c 
-    (->i ([f (-> any/c real?)] [lox list?]) (r any/c)
-         #:post/name (f lox r) "(f r) is largest and leftmost one" (complete-specification f lox r)))
+    [argmax
+     (->i ([f (-> any/c real?)] [lox list?]) (r any/c)
+          #:post/name (f lox r) "(f r) is largest & leftmost one" (complete-specification f lox r))]))
 
   (define (complete-specification f lox r)
     (define f@r (f r))<
@@ -90,13 +83,10 @@
 (module argmax-max-leftmost-with-certificate racket
   (provide
    (contract-out
-    [argmax argmax/c]))
+    [argmax (-> (-> any/c real?) list? any/c)]))
   
   (require (rename-in racket (argmax old:argmax)))
-
-  (define argmax/c 
-    (-> (-> any/c real?) list? any/c))
-
+  
   (define (argmax f lox)
     (define *cache '())
     (define (g x)
@@ -132,10 +122,7 @@
   (provide argmax)
   
   (require (rename-in racket (argmax old:argmax)))
-
-  (define argmax/c 
-    (-> (-> any/c real?) list? any/c))
-
+  
   (define (argmax f lox)
     (define *cache '())
     (define (g x)
@@ -169,7 +156,12 @@
 (module argmax-param-contract racket
   (provide
    (contract-out
-    [argmax argmax/c]))
+    [argmax
+     (->i ([f (->i ([x any/c]) (y real?) #:post (x y) (send (argmax/p) record x y))]
+           [lox list?])
+          #:param () argmax/p (new argmax%)
+          (r any/c)
+          #:post/name (f lox r) "(f r) is largest & leftmost one" (send (argmax/p) check f r))]))
 
   (define argmax%
     (class object%
@@ -196,14 +188,7 @@
       (define/public (record x y)
         (set! cache (cons (list x y) cache)))))
 
-  (define argmax/p (make-parameter #false))
-  
-  (define argmax/c
-    (->i ([f (->i ([x any/c]) (y real?) #:post (x y) (send (argmax/p) record x y))]
-          [lox list?])
-         #:param () argmax/p (new argmax%)
-         (r any/c)
-         #:post/name (f lox r) "(f r) is largest and leftmost one" (send (argmax/p) check f r))))
+  (define argmax/p (make-parameter #false)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; a re-implementation that is as fast the one in the library (confirmed)
@@ -214,10 +199,7 @@
 
   (provide
    (contract-out
-    [rename argmax argmax-with argmax/c]))
-
-  (define argmax/c ;; the plainest contract 
-    (-> (-> any/c real?) list? any/c))
+    [rename argmax argmax-with (-> (-> any/c real?) list? any/c)]))
   
   (define (argmax f lox0)
     (define-values (r cache) (argmax0 f lox0))
@@ -308,11 +290,10 @@
   (measure argmax-with "internal ->")
   (measure d:argmax "lifted certificate")
   (measure c:argmax "-> and lifted")
+  (measure q:argmax "param ->i")
+
   (measure f:argmax "full ->i")
   (measure m:argmax "max ->i")
   (measure p:argmax "plain ->")
-
-  (measure q:argmax "param ->i")
-  
   
   (print-table (reverse *measurements)))
